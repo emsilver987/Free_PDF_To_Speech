@@ -70,8 +70,11 @@ mkdir -p uploads outputs jobs
 **Terminal 1 - Backend API:**
 ```bash
 source venv/bin/activate
-python backend/app.py
+python run.py
 # API runs on http://localhost:5000
+
+# Or with options:
+python run.py --host 0.0.0.0 --port 5000 --debug
 ```
 
 **Terminal 2 - Frontend:**

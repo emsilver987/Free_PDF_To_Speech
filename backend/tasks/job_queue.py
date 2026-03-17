@@ -6,9 +6,14 @@ from datetime import datetime
 import threading
 import queue
 import logging
-from ..converters.pdf_processor import PDFProcessor
-from ..converters.tts_engine import TTSEngine
-from ..converters.audio_processor import AudioProcessor
+import sys
+
+# Add backend directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from converters.pdf_processor import PDFProcessor
+from converters.tts_engine import TTSEngine
+from converters.audio_processor import AudioProcessor
 
 logger = logging.getLogger(__name__)
 
