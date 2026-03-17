@@ -54,37 +54,82 @@ Convert PDFs to high-quality audio with a modern web UI and powerful REST API. S
 git clone https://github.com/emsilver987/Free_PDF_To_Speech.git
 cd Free_PDF_To_Speech
 
-# Run setup script
+# Run one-time setup (installs dependencies, creates directories)
 chmod +x SETUP.sh
 ./SETUP.sh
-
-# Or manual setup
-python3 -m venv venv
-source venv/bin/activate  # or: venv\Scripts\Activate (Windows)
-pip install -r requirements.txt
-mkdir -p uploads outputs jobs
 ```
 
-### Start the Application
+The setup script will:
+- ✅ Create a Python virtual environment
+- ✅ Install all dependencies
+- ✅ Create runtime directories (uploads/, outputs/, jobs/)
+- ✅ Check for system dependencies (ffmpeg, tesseract)
+- ✅ Show startup instructions
 
-**Terminal 1 - Backend API:**
+### Starting the Application
+
+The application needs **TWO terminals** running simultaneously.
+
+**Option 1: Using the provided startup scripts**
+
+Terminal 1 (Backend API):
+```bash
+./start.sh
+# Runs on http://localhost:5000
+```
+
+Terminal 2 (Frontend Web UI):
+```bash
+./start-frontend.sh
+# Runs on http://localhost:8080
+```
+
+**Option 2: Manual startup**
+
+Terminal 1 (Backend API):
 ```bash
 source venv/bin/activate
 python run.py
 # API runs on http://localhost:5000
-
-# Or with options:
-python run.py --host 0.0.0.0 --port 5000 --debug
 ```
 
-**Terminal 2 - Frontend:**
+Terminal 2 (Frontend):
 ```bash
-cd frontend
-python -m http.server 8080
-# UI opens at http://localhost:8080
+source venv/bin/activate
+python -m http.server 8080 --directory frontend
+# UI runs on http://localhost:8080
 ```
 
-Then open `http://localhost:8080` in your browser.
+Then **open your browser to:** `http://localhost:8080`
+
+### Troubleshooting Startup
+
+**"API Unavailable" error in UI?**
+- Make sure backend is running: `python run.py` in Terminal 1
+- Check that http://localhost:5000/api/health returns a response
+- Both terminals must be active simultaneously
+
+**"Permission denied" on SETUP.sh?**
+```bash
+chmod +x SETUP.sh
+./SETUP.sh
+```
+
+**Windows users:**
+```bash
+# Create venv
+python -m venv venv
+venv\Scripts\Activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start backend
+python run.py
+
+# In another terminal:
+python -m http.server 8080 --directory frontend
+```
 
 ---
 
