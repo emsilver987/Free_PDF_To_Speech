@@ -357,6 +357,10 @@
         <h1>🎵 PDF to Speech</h1>
         <p class="subtitle">Convert your PDFs to high-quality audio</p>
 
+        <div id="apiStatus" style="padding: 12px; border-radius: 6px; margin-bottom: 20px; display: none; text-align: center; font-weight: 500;">
+            <span id="apiStatusText"></span>
+        </div>
+
         <div class="alert" id="alert"></div>
 
         <div class="tabs">
@@ -563,12 +567,23 @@
             try {
                 convertBtn.disabled = true;
                 const endpoint = selectedFiles.length === 1 ? "/convert" : "/batch";
-                const response = await fetch(`${API_BASE}${endpoint}`, {
+                const url = `${API_BASE}${endpoint}`;
+                
+                console.log("Converting files...");
+                console.log(`POST ${url}`);
+                console.log(`Files: ${selectedFiles.map(f => f.name).join(', ')}`);
+                console.log(`Engine: ${engineSelect.value}`);
+                console.log(`Speed: ${speedRange.value}`);
+                
+                const response = await fetch(url, {
                     method: "POST",
                     body: formData
                 });
 
+                console.log(`Response status: ${response.status}`);
+
                 const data = await response.json();
+                console.log("Response:", data);
 
                 if (response.ok || response.status === 202) {
                     showAlert(`${selectedFiles.length} file(s) queued for conversion`, "success");
@@ -580,10 +595,13 @@
                         document.querySelector('[data-tab="jobs"]').click();
                     }
                 } else {
-                    showAlert(data.error || "Conversion failed", "error");
+                    const errorMsg = data.error || data.message || "Conversion failed";
+                    console.error("Error response:", data);
+                    showAlert(errorMsg, "error");
                 }
             } catch (e) {
-                showAlert(e.message, "error");
+                console.error("Fetch error:", e);
+                showAlert(`Connection error: ${e.message}. Is the API running? (python run.py)`, "error");
                 convertBtn.disabled = false;
             }
         }
@@ -643,9 +661,44 @@
             setTimeout(() => alert.classList.remove("show"), 5000);
         }
 
+        // Check API health
+        async function checkAPIHealth() {
+            const statusEl = document.getElementById('apiStatus');
+            const statusText = document.getElementById('apiStatusText');
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`, { 
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.background = '#d4edda';
+                    statusEl.style.color = '#155724';
+                    statusEl.style.border = '1px solid #c3e6cb';
+                    statusText.textContent = '✅ API Connected';
+                    convertBtn.disabled = selectedFiles.length === 0;
+                    return true;
+                }
+            } catch (e) {
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#f8d7da';
+                statusEl.style.color = '#721c24';
+                statusEl.style.border = '1px solid #f5c6cb';
+                statusText.textContent = `❌ API Unavailable (${API_BASE}) - Make sure backend is running: python run.py`;
+                convertBtn.disabled = true;
+                return false;
+            }
+        }
+        
         // Initial setup
         function initializeUI() {
+            checkAPIHealth();
             loadVoices();
+            
+            // Recheck health every 10 seconds
+            setInterval(checkAPIHealth, 10000);
         }
         
         // Load voices when page loads
