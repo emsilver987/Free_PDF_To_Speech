@@ -37,13 +37,18 @@ class TTSEngine:
             try:
                 engine_obj = pyttsx3.init()
                 voices = engine_obj.getProperty("voices")
-                return [
-                    {"id": v.id, "name": v.name, "gender": getattr(v, "gender", "unknown")}
-                    for v in voices
-                ]
+                if voices:
+                    return [
+                        {"id": v.id, "name": v.name, "gender": getattr(v, "gender", "unknown")}
+                        for v in voices
+                    ]
             except Exception as e:
                 logger.error(f"Failed to get system voices: {str(e)}")
-                return []
+            
+            # Fallback for system TTS if detection fails
+            return [
+                {"id": "default", "name": "System Default Voice"}
+            ]
         
         return []
     
@@ -73,13 +78,14 @@ class TTSEngine:
     
     def _gtts(self, text, voice=None, output_dir=None):
         """Google TTS synthesis"""
-        lang = voice or "en"
+        # Use provided voice/lang, or default to English
+        lang = voice if voice and voice != "default" else "en"
         output_file = Path(output_dir) / f"speech_{uuid.uuid4()}.mp3"
         
         try:
-            tts = gTTS(text, lang=lang)
+            tts = gTTS(text, lang=lang, slow=False)
             tts.save(str(output_file))
-            logger.info(f"Generated speech: {output_file}")
+            logger.info(f"Generated speech: {output_file} (lang: {lang})")
             return str(output_file)
         except Exception as e:
             logger.error(f"gTTS failed: {str(e)}")
@@ -92,9 +98,12 @@ class TTSEngine:
         try:
             engine = pyttsx3.init()
             
-            # Set voice if specified
-            if voice:
-                engine.setProperty("voice", voice)
+            # Set voice if specified and not "default"
+            if voice and voice != "default":
+                try:
+                    engine.setProperty("voice", voice)
+                except Exception as e:
+                    logger.warning(f"Could not set voice {voice}, using default: {str(e)}")
             
             # Configure speech rate
             engine.setProperty("rate", 150)  # Words per minute

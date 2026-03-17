@@ -522,11 +522,24 @@
                 const response = await fetch(`${API_BASE}/voices?engine=${engine}`);
                 const data = await response.json();
                 
-                voiceSelect.innerHTML = data.voices.map(v => 
-                    `<option value="${v.id}">${v.name}</option>`
-                ).join("");
+                if (data.voices && data.voices.length > 0) {
+                    voiceSelect.innerHTML = data.voices.map(v => 
+                        `<option value="${v.id}">${v.name}</option>`
+                    ).join("");
+                } else {
+                    // Fallback: use sensible defaults
+                    const defaults = {
+                        gtts: [{ id: "en", name: "English (Google TTS)" }],
+                        system: [{ id: "default", name: "System Default" }]
+                    };
+                    voiceSelect.innerHTML = (defaults[engine] || defaults.gtts)
+                        .map(v => `<option value="${v.id}">${v.name}</option>`)
+                        .join("");
+                }
             } catch (e) {
                 console.error("Failed to load voices:", e);
+                // Fallback on error
+                voiceSelect.innerHTML = `<option value="en">English (Default)</option>`;
             }
         }
 
@@ -535,7 +548,11 @@
 
             const formData = new FormData();
             formData.append("engine", engineSelect.value);
-            formData.append("voice", voiceSelect.value);
+            // Voice is optional - only add if selected
+            const voice = voiceSelect.value;
+            if (voice) {
+                formData.append("voice", voice);
+            }
             formData.append("speed", speedRange.value);
             formData.append("async", asyncCheckbox.checked);
 
@@ -627,7 +644,12 @@
         }
 
         // Initial setup
-        loadVoices();
+        function initializeUI() {
+            loadVoices();
+        }
+        
+        // Load voices when page loads
+        document.addEventListener('DOMContentLoaded', initializeUI);
     </script>
 </body>
 </html>
