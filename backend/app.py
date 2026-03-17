@@ -50,9 +50,25 @@ job_queue = JobQueue(JOBS_FOLDER)
 @app.route("/api/health", methods=["GET"])
 def health():
     """Health check endpoint"""
+    import shutil
+    
+    ffmpeg_available = shutil.which('ffmpeg') is not None and shutil.which('ffprobe') is not None
+    tesseract_available = shutil.which('tesseract') is not None
+    
+    warnings = []
+    if not ffmpeg_available:
+        warnings.append("ffmpeg not installed - speed adjustment disabled")
+    if not tesseract_available:
+        warnings.append("tesseract not installed - OCR for scanned PDFs disabled")
+    
     return jsonify({
         "status": "healthy",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "features": {
+            "ffmpeg": ffmpeg_available,
+            "tesseract": tesseract_available
+        },
+        "warnings": warnings if warnings else None
     })
 
 

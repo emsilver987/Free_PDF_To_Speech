@@ -3,8 +3,12 @@
 from pydub import AudioSegment
 from pathlib import Path
 import logging
+import shutil
 
 logger = logging.getLogger(__name__)
+
+# Check if ffmpeg is available
+FFMPEG_AVAILABLE = shutil.which('ffmpeg') is not None and shutil.which('ffprobe') is not None
 
 
 class AudioProcessor:
@@ -13,6 +17,7 @@ class AudioProcessor:
     def process_audio(self, audio_path, speed=1.0, normalize=True, format="mp3"):
         """
         Post-process audio with speed adjustment and normalization
+        Falls back to simple conversion if ffmpeg unavailable
         
         Args:
             audio_path: Path to source audio
@@ -32,9 +37,11 @@ class AudioProcessor:
             # Load audio
             sound = AudioSegment.from_file(str(audio_path), format=file_format)
             
-            # Apply speed adjustment
-            if speed != 1.0:
+            # Apply speed adjustment (only if ffmpeg available)
+            if speed != 1.0 and FFMPEG_AVAILABLE:
                 sound = self._adjust_speed(sound, speed)
+            elif speed != 1.0 and not FFMPEG_AVAILABLE:
+                logger.warning(f"Speed adjustment skipped (ffmpeg not installed). Audio will play at normal speed.")
             
             # Normalize volume
             if normalize:
@@ -54,11 +61,25 @@ class AudioProcessor:
         
         except Exception as e:
             logger.error(f"Audio processing failed: {str(e)}")
-            raise
+            # If processing fails, try to just convert to target format without modifications
+            try:
+                logger.info("Falling back to simple format conversion...")
+                sound = AudioSegment.from_file(str(audio_path), format=file_format)
+                output_path = audio_path.parent / f"{audio_path.stem}_processed.{format}"
+                sound.export(str(output_path), format=format)
+                logger.info(f"Fallback conversion saved: {output_path}")
+                return str(output_path)
+            except Exception as e2:
+                logger.error(f"Fallback conversion also failed: {str(e2)}")
+                raise
     
     def _adjust_speed(self, sound, speed_factor):
         """Adjust playback speed by changing frame rate"""
         if speed_factor == 1.0:
+            return sound
+        
+        if not FFMPEG_AVAILABLE:
+            logger.warning("ffmpeg not available, speed adjustment skipped")
             return sound
         
         # Increase playback speed by reducing frame rate

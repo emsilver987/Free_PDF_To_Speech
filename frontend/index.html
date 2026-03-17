@@ -673,11 +673,23 @@
                 });
                 
                 if (response.ok) {
+                    const data = await response.json();
                     statusEl.style.display = 'block';
-                    statusEl.style.background = '#d4edda';
-                    statusEl.style.color = '#155724';
-                    statusEl.style.border = '1px solid #c3e6cb';
-                    statusText.textContent = '✅ API Connected';
+                    
+                    if (data.warnings && data.warnings.length > 0) {
+                        // Warnings - degraded mode
+                        statusEl.style.background = '#fff3cd';
+                        statusEl.style.color = '#856404';
+                        statusEl.style.border = '1px solid #ffeaa7';
+                        statusText.innerHTML = `⚠️ API Connected (some features disabled)<br><small>${data.warnings.join(' • ')}</small>`;
+                    } else {
+                        // All good
+                        statusEl.style.background = '#d4edda';
+                        statusEl.style.color = '#155724';
+                        statusEl.style.border = '1px solid #c3e6cb';
+                        statusText.textContent = '✅ API Connected';
+                    }
+                    
                     convertBtn.disabled = selectedFiles.length === 0;
                     return true;
                 }
