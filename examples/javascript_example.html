@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Speech - JavaScript Integration Example</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .example {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #d63384;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        
+        button:hover {
+            background: #764ba2;
+        }
+        
+        .output {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            color: #333;
+            font-size: 13px;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF to Speech - JavaScript Integration Examples</h1>
+    
+    <div class="example">
+        <h2>Example 1: Single File Conversion</h2>
+        <p>Convert a PDF to speech asynchronously and track the job.</p>
+        
+        <input type="file" id="singleFile" accept=".pdf">
+        <button onclick="convertSingle()">Convert Single File</button>
+        
+        <div id="singleOutput" class="output" style="display:none;"></div>
+        
+        <pre><code>async function convertSingle() {
+  const file = document.getElementById('singleFile').files[0];
+  if (!file) return alert('Select a file');
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('engine', 'gtts');
+  formData.append('speed', 1.0);
+  formData.append('async', true);
+  
+  const response = await fetch('http://localhost:5000/api/convert', {
+    method: 'POST',
+    body: formData
+  });
+  
+  const data = await response.json();
+  console.log('Job ID:', data.job_id);
+  console.log('Status:', data.status);
+  
+  // Poll for completion
+  await waitForCompletion(data.job_id);
+}</code></pre>
+    </div>
+    
+    <div class="example">
+        <h2>Example 2: Batch Processing</h2>
+        <p>Convert multiple PDFs at once.</p>
+        
+        <input type="file" id="batchFiles" accept=".pdf" multiple>
+        <button onclick="convertBatch()">Convert Batch</button>
+        
+        <div id="batchOutput" class="output" style="display:none;"></div>
+        
+        <pre><code>async function convertBatch() {
+  const files = document.getElementById('batchFiles').files;
+  if (!files.length) return alert('Select files');
+  
+  const formData = new FormData();
+  for (let file of files) {
+    formData.append('files', file);
+  }
+  formData.append('engine', 'gtts');
+  formData.append('speed', 1.2);
+  
+  const response = await fetch('http://localhost:5000/api/batch', {
+    method: 'POST',
+    body: formData
+  });
+  
+  const data = await response.json();
+  console.log('Jobs queued:', data.job_count);
+  console.log('Job IDs:', data.job_ids);
+}</code></pre>
+    </div>
+    
+    <div class="example">
+        <h2>Example 3: Voice Selection</h2>
+        <p>Dynamically load and select voices.</p>
+        
+        <select id="engineSelect">
+            <option value="gtts">Google TTS</option>
+            <option value="system">System TTS</option>
+        </select>
+        <button onclick="loadVoices()">Load Voices</button>
+        
+        <div id="voicesOutput" class="output" style="display:none;"></div>
+        
+        <pre><code>async function loadVoices() {
+  const engine = document.getElementById('engineSelect').value;
+  
+  const response = await fetch(
+    `http://localhost:5000/api/voices?engine=${engine}`
+  );
+  
+  const data = await response.json();
+  console.log('Available voices:', data.voices);
+  
+  // Populate select dropdown
+  const select = document.getElementById('voiceSelect');
+  select.innerHTML = data.voices
+    .map(v => `<option value="${v.id}">${v.name}</option>`)
+    .join('');
+}</code></pre>
+    </div>
+    
+    <div class="example">
+        <h2>Example 4: Job Status Polling</h2>
+        <p>Check job status and download when ready.</p>
+        
+        <input type="text" id="jobId" placeholder="Enter job ID">
+        <button onclick="checkStatus()">Check Status</button>
+        <button onclick="downloadResult()">Download</button>
+        
+        <div id="statusOutput" class="output" style="display:none;"></div>
+        
+        <pre><code>async function checkStatus() {
+  const jobId = document.getElementById('jobId').value;
+  if (!jobId) return alert('Enter job ID');
+  
+  const response = await fetch(
+    `http://localhost:5000/api/jobs/${jobId}`
+  );
+  
+  if (response.ok) {
+    const job = await response.json();
+    console.log('Status:', job.status);
+    console.log('Created:', job.created_at);
+    console.log('Completed:', job.completed_at);
+    
+    if (job.status === 'completed') {
+      console.log('Ready to download:', job.output_file);
+    }
+  } else {
+    console.error('Job not found');
+  }
+}
+
+async function downloadResult() {
+  const jobId = document.getElementById('jobId').value;
+  const response = await fetch(
+    `http://localhost:5000/api/download/${jobId}`
+  );
+  
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `audio_${jobId}.mp3`;
+  a.click();
+}</code></pre>
+    </div>
+    
+    <div class="example">
+        <h2>Example 5: Complete Workflow</h2>
+        <p>Full workflow: convert, wait, and download.</p>
+        
+        <input type="file" id="workflowFile" accept=".pdf">
+        <button onclick="runWorkflow()">Run Workflow</button>
+        
+        <div id="workflowOutput" class="output" style="display:none;"></div>
+        
+        <pre><code>async function runWorkflow() {
+  // 1. Upload and convert
+  const file = document.getElementById('workflowFile').files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('engine', 'gtts');
+  formData.append('async', true);
+  
+  const convertRes = await fetch('http://localhost:5000/api/convert', {
+    method: 'POST',
+    body: formData
+  });
+  const job = await convertRes.json();
+  const jobId = job.job_id;
+  
+  // 2. Poll until complete
+  let status = 'processing';
+  while (status !== 'completed' && status !== 'failed') {
+    const statusRes = await fetch(
+      `http://localhost:5000/api/jobs/${jobId}`
+    );
+    const jobData = await statusRes.json();
+    status = jobData.status;
+    
+    console.log(`Status: ${status}`);
+    await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+  }
+  
+  if (status === 'completed') {
+    // 3. Download
+    const downloadRes = await fetch(
+      `http://localhost:5000/api/download/${jobId}`
+    );
+    const blob = await downloadRes.blob();
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name.replace('.pdf', '.mp3');
+    a.click();
+  }
+}</code></pre>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        async function convertSingle() {
+            const file = document.getElementById('singleFile').files[0];
+            if (!file) return alert('Select a file');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('engine', 'gtts');
+            formData.append('speed', 1.0);
+            formData.append('async', true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/convert`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                const output = document.getElementById('singleOutput');
+                output.style.display = 'block';
+                output.innerHTML = `
+                    <span class="success">✅ Conversion started</span><br>
+                    Job ID: <code>${data.job_id}</code><br>
+                    Status: ${data.status}
+                `;
+                
+                // Auto-check status
+                checkJobRepeatedly(data.job_id);
+            } catch (e) {
+                alert(`Error: ${e.message}`);
+            }
+        }
+        
+        async function convertBatch() {
+            const files = document.getElementById('batchFiles').files;
+            if (!files.length) return alert('Select files');
+            
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append('files', file);
+            }
+            formData.append('engine', 'gtts');
+            
+            try {
+                const response = await fetch(`${API_BASE}/batch`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                const output = document.getElementById('batchOutput');
+                output.style.display = 'block';
+                output.innerHTML = `
+                    <span class="success">✅ Batch queued</span><br>
+                    Files: ${data.job_count}<br>
+                    Job IDs: ${data.job_ids.slice(0, 3).join(', ')}${data.job_ids.length > 3 ? '...' : ''}
+                `;
+            } catch (e) {
+                alert(`Error: ${e.message}`);
+            }
+        }
+        
+        async function loadVoices() {
+            const engine = document.getElementById('engineSelect').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/voices?engine=${engine}`);
+                const data = await response.json();
+                
+                const output = document.getElementById('voicesOutput');
+                output.style.display = 'block';
+                output.innerHTML = `
+                    <span class="success">✅ Voices loaded</span><br>
+                    ${data.voices.map(v => `${v.id}: ${v.name}`).join('<br>')}
+                `;
+            } catch (e) {
+                alert(`Error: ${e.message}`);
+            }
+        }
+        
+        async function checkStatus() {
+            const jobId = document.getElementById('jobId').value;
+            if (!jobId) return alert('Enter job ID');
+            
+            try {
+                const response = await fetch(`${API_BASE}/jobs/${jobId}`);
+                if (!response.ok) throw new Error('Job not found');
+                
+                const job = await response.json();
+                const output = document.getElementById('statusOutput');
+                output.style.display = 'block';
+                
+                const statusClass = job.status === 'completed' ? 'success' : 
+                                   job.status === 'failed' ? 'error' : 'status';
+                
+                output.innerHTML = `
+                    <span class="${statusClass}">Status: ${job.status}</span><br>
+                    File: ${job.filename}<br>
+                    Created: ${new Date(job.created_at).toLocaleString()}<br>
+                    ${job.completed_at ? `Completed: ${new Date(job.completed_at).toLocaleString()}` : ''}
+                `;
+            } catch (e) {
+                alert(`Error: ${e.message}`);
+            }
+        }
+        
+        async function downloadResult() {
+            const jobId = document.getElementById('jobId').value;
+            if (!jobId) return alert('Enter job ID');
+            
+            try {
+                const response = await fetch(`${API_BASE}/download/${jobId}`);
+                if (!response.ok) throw new Error('Download failed');
+                
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `audio_${jobId.slice(0, 8)}.mp3`;
+                a.click();
+            } catch (e) {
+                alert(`Error: ${e.message}`);
+            }
+        }
+        
+        async function runWorkflow() {
+            const file = document.getElementById('workflowFile').files[0];
+            if (!file) return alert('Select a file');
+            
+            const output = document.getElementById('workflowOutput');
+            output.style.display = 'block';
+            
+            try {
+                // 1. Upload
+                output.innerHTML = '⏳ Uploading...';
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('async', true);
+                
+                const convertRes = await fetch(`${API_BASE}/convert`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const job = await convertRes.json();
+                const jobId = job.job_id;
+                
+                output.innerHTML = `✅ Job created: <code>${jobId}</code><br>⏳ Processing...`;
+                
+                // 2. Wait for completion
+                let status = 'processing';
+                let attempts = 0;
+                while (status !== 'completed' && status !== 'failed' && attempts < 120) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    
+                    const statusRes = await fetch(`${API_BASE}/jobs/${jobId}`);
+                    const jobData = await statusRes.json();
+                    status = jobData.status;
+                    
+                    output.innerHTML += `<br>⏳ ${status}...`;
+                    attempts++;
+                }
+                
+                if (status === 'completed') {
+                    // 3. Download
+                    output.innerHTML += '<br>📥 Downloading...';
+                    
+                    const downloadRes = await fetch(`${API_BASE}/download/${jobId}`);
+                    const blob = await downloadRes.blob();
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = file.name.replace('.pdf', '.mp3');
+                    a.click();
+                    
+                    output.innerHTML += '<br><span class="success">✅ Complete! File downloaded.</span>';
+                } else {
+                    output.innerHTML += '<br><span class="error">❌ Processing failed.</span>';
+                }
+            } catch (e) {
+                output.innerHTML += `<br><span class="error">❌ Error: ${e.message}</span>`;
+            }
+        }
+        
+        function checkJobRepeatedly(jobId, attempts = 0) {
+            if (attempts > 60) return; // 2 minute timeout
+            
+            fetch(`${API_BASE}/jobs/${jobId}`)
+                .then(r => r.json())
+                .then(job => {
+                    if (job.status === 'completed' || job.status === 'failed') {
+                        console.log(`Job ${jobId}: ${job.status}`);
+                    } else {
+                        setTimeout(() => checkJobRepeatedly(jobId, attempts + 1), 2000);
+                    }
+                });
+        }
+    </script>
+</body>
+</html>

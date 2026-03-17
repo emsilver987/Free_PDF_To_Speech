@@ -1,184 +1,330 @@
-# PDF Text-to-Speech Converter
+# PDF to Speech Converter
 
-A Python application that converts PDF documents to audio using text-to-speech technology. Supports both online (Google TTS) and offline (Windows TTS) modes.
+Convert PDFs to high-quality audio with a modern web UI and powerful REST API. Supports multiple TTS engines, batch processing, and async job management.
 
-## Features
+## ✨ Features
 
-- 📄 **PDF Processing**: Extract text from PDF files using PyMuPDF
-- 🔍 **OCR Support**: Automatic OCR fallback for scanned PDFs using Tesseract
-- 🎵 **Multiple TTS Options**: 
-  - Google Text-to-Speech (online, high quality)
-  - Windows built-in TTS (offline, no internet required)
-- ⚡ **Audio Processing**: Speed up audio playback (1.5x speed)
-- 🎯 **Easy Setup**: One-command environment setup
+### 🖥️ Modern Web UI
+- Drag-and-drop PDF upload
+- Real-time TTS engine & voice selection
+- Speed control (0.5x - 2.0x)
+- Batch file processing
+- Live job status tracking
+- One-click audio download
 
-## Prerequisites
+### 🔌 REST API
+- Single & batch file conversion endpoints
+- Async job queue for large PDFs
+- Voice listing by engine
+- Job status polling
+- Direct audio file downloads
+- JSON responses for easy integration
 
-- Python 3.8 or higher
-- Windows OS (for offline TTS)
-- Internet connection (for Google TTS only)
+### ⚙️ Multiple TTS Engines
+- **Google TTS** - Online, high quality, 15+ languages
+- **System TTS** - Offline, fast, Windows/macOS/Linux compatible
+- **Pluggable architecture** - Ready for ElevenLabs, Coqui, etc.
 
-## Quick Start
+### 📄 PDF Processing
+- Text extraction with PyMuPDF
+- OCR fallback for scanned documents (Tesseract)
+- Page-by-page extraction
+- Metadata extraction (title, author, page count)
 
-### 1. Clone or Download
+### 🎵 Audio Processing
+- Speed adjustment (0.5x - 2.0x)
+- Volume normalization
+- Multiple output formats (MP3, WAV, M4B)
+- Chapter splitting support
+- Audio metadata retrieval
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- FFmpeg (audio processing)
+- Tesseract OCR (for scanned PDFs)
+
+### Installation
+
 ```bash
-git clone <repository-url>
-cd tts
+# Clone and navigate
+git clone https://github.com/emsilver987/Free_PDF_To_Speech.git
+cd Free_PDF_To_Speech
+
+# Run setup script
+chmod +x SETUP.sh
+./SETUP.sh
+
+# Or manual setup
+python3 -m venv venv
+source venv/bin/activate  # or: venv\Scripts\Activate (Windows)
+pip install -r requirements.txt
+mkdir -p uploads outputs jobs
 ```
 
-### 2. Set Up Environment
-```bash
-# Option A: Use the batch file (Windows)
-activate.bat
+### Start the Application
 
-# Option B: Manual activation
-.venv\Scripts\Activate.ps1
+**Terminal 1 - Backend API:**
+```bash
+source venv/bin/activate
+python backend/app.py
+# API runs on http://localhost:5000
 ```
 
-### 3. Install Dependencies
+**Terminal 2 - Frontend:**
 ```bash
+cd frontend
+python -m http.server 8080
+# UI opens at http://localhost:8080
+```
+
+Then open `http://localhost:8080` in your browser.
+
+---
+
+## 📖 Usage
+
+### Web UI
+
+1. **Upload PDFs**: Drag files into the drop zone or click to browse
+2. **Configure**: Select TTS engine, voice, and playback speed
+3. **Process**: Click "Convert" to start processing
+4. **Monitor**: Check the Jobs tab for real-time status
+5. **Download**: Get your audio file when ready
+
+### REST API
+
+See [API.md](./API.md) for complete endpoint documentation.
+
+#### Convert a Single PDF
+```bash
+curl -X POST http://localhost:5000/api/convert \
+  -F "file=@document.pdf" \
+  -F "engine=gtts" \
+  -F "voice=en" \
+  -F "speed=1.2" \
+  -F "async=true"
+```
+
+#### Batch Processing
+```bash
+curl -X POST http://localhost:5000/api/batch \
+  -F "files=@doc1.pdf" \
+  -F "files=@doc2.pdf" \
+  -F "engine=gtts" \
+  -F "speed=1.0"
+```
+
+#### Check Job Status
+```bash
+curl http://localhost:5000/api/jobs/{job_id}
+```
+
+---
+
+## 📁 Project Structure
+
+```
+.
+├── backend/                          # Flask API server
+│   ├── app.py                       # Main API application
+│   ├── converters/
+│   │   ├── pdf_processor.py        # PDF extraction + OCR
+│   │   ├── tts_engine.py           # TTS abstraction layer
+│   │   └── audio_processor.py      # Speed, volume, format conversion
+│   └── tasks/
+│       └── job_queue.py            # Async job processing
+├── frontend/
+│   └── index.html                  # Modern web UI (no build required)
+├── examples/                        # Integration examples & scripts
+├── legacy/                          # Original simple scripts
+├── uploads/                         # Temporary PDF uploads
+├── outputs/                         # Generated audio files
+├── jobs/                            # Job metadata & history
+├── requirements.txt                # Python dependencies
+├── SETUP.sh                        # Quick setup script
+├── API.md                          # REST API documentation
+└── README.md                       # This file
+```
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+export FLASK_ENV=production
+export FLASK_HOST=0.0.0.0
+export FLASK_PORT=5000
+export MAX_FILE_SIZE=100  # MB
+```
+
+### TTS Engine Configuration
+
+**Google TTS** (default):
+- Requires internet connection
+- Best for high-quality audio
+- Supports 15+ languages
+- No API key needed
+
+**System TTS** (offline):
+- No internet required
+- Faster processing
+- Good for quick conversions
+- Windows/macOS/Linux compatible
+
+---
+
+## 🐛 Troubleshooting
+
+### Module Import Errors
+```bash
+# Ensure virtual environment is activated
+source venv/bin/activate
+# Reinstall dependencies
 pip install -r requirements.txt
 ```
 
-### 4. Run the Application
+### "Couldn't find ffmpeg"
 ```bash
-# Online TTS (requires internet)
-python tts.py
+# macOS
+brew install ffmpeg
 
-# Offline TTS (no internet required)
-python tts_offline.py
+# Ubuntu/Debian
+sudo apt install ffmpeg
 
-# Test environment
-python test_env.py
+# Windows: Download from https://ffmpeg.org/download.html
 ```
 
-## Usage
-
-### Basic Usage
-
-1. **Place your PDF file** in the `tts` directory
-2. **Update the PDF filename** in the script:
-   ```python
-   pdf_path = "your-document.pdf"
-   ```
-3. **Run the appropriate script**:
-   - `python tts.py` - For Google TTS (better quality, requires internet)
-   - `python tts_offline.py` - For Windows TTS (offline, faster)
-
-### Output
-
-- **Audio file**: `your-document.mp3` (same name as PDF)
-- **Temporary files**: Automatically cleaned up
-
-## Scripts Overview
-
-| Script | Description | Internet Required |
-|--------|-------------|-------------------|
-| `tts.py` | Google TTS with audio processing | ✅ Yes |
-| `tts_offline.py` | Windows built-in TTS | ❌ No |
-| `test_env.py` | Test all dependencies | ❌ No |
-
-## Dependencies
-
-- **PyMuPDF**: PDF text extraction
-- **Pillow**: Image processing for OCR
-- **pytesseract**: Optical Character Recognition
-- **gTTS**: Google Text-to-Speech
-- **pydub**: Audio processing and manipulation
-- **pyttsx3**: Offline text-to-speech
-- **audioop-lts**: Python 3.13 compatibility
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"ModuleNotFoundError"**
-   ```bash
-   # Make sure virtual environment is activated
-   .venv\Scripts\Activate.ps1
-   pip install -r requirements.txt
-   ```
-
-2. **"Couldn't find ffmpeg"**
-   - This is a warning, not an error
-   - The script will still work for basic audio processing
-
-3. **Google TTS Connection Issues**
-   - Check internet connection
-   - Use `tts_offline.py` as alternative
-
-4. **OCR Not Working**
-   - Ensure Tesseract is installed on your system
-   - For Windows: Download from [GitHub](https://github.com/UB-Mannheim/tesseract/wiki)
-
-### Testing Environment
-
-Run the test script to verify everything is working:
+### "Tesseract not found" (OCR)
 ```bash
-python test_env.py
+# macOS
+brew install tesseract
+
+# Ubuntu/Debian
+sudo apt install tesseract-ocr
+
+# Windows: https://github.com/UB-Mannheim/tesseract/wiki
 ```
 
-Expected output:
-```
-Testing TTS environment...
-========================================
-✅ PyMuPDF (fitz) imported successfully
-✅ Pillow (PIL) imported successfully
-✅ pytesseract imported successfully
-✅ gTTS imported successfully
-✅ pydub imported successfully
-✅ pyttsx3 imported successfully
-✅ PDF opened successfully: X pages
-🎉 All tests passed! Environment is ready.
+### API Returns 500 Errors
+```bash
+# Run in debug mode for detailed logs
+python backend/app.py --debug
 ```
 
-## File Structure
+### Slow Conversion
+- Use `system` TTS for offline mode
+- Set speed to 1.2-1.5x
+- Use async mode for files >10MB
 
-```
-tts/
-├── .venv/                 # Virtual environment
-├── .gitignore            # Git ignore rules
-├── README.md             # This file
-├── requirements.txt      # Python dependencies
-├── activate.bat          # Easy activation script
-├── tts.py               # Main script (Google TTS)
-├── tts_offline.py       # Offline TTS script
-├── test_env.py          # Environment test script
-└── your-document.pdf    # Your PDF files (ignored by git)
-```
+---
 
-## Customization
+## 📚 Documentation
 
-### Audio Settings (tts_offline.py)
+- **[API.md](./API.md)** - Complete REST API reference
+- **[examples/](./examples/)** - Integration examples & scripts
+- **[legacy/](./legacy/)** - Original simple CLI scripts
+
+---
+
+## 🛣️ Roadmap
+
+### Completed ✅
+- Web UI with drag-and-drop upload
+- REST API with async job queue
+- Multiple TTS engines
+- Audio post-processing
+- Batch file conversion
+
+### Coming Soon 🔜
+- [ ] ElevenLabs TTS integration (ultra-high quality voices)
+- [ ] Coqui TTS support (open-source neural voices)
+- [ ] Cloud storage integration (AWS S3, Google Drive)
+- [ ] Podcast platform publishing
+- [ ] Advanced text preprocessing & cleanup
+- [ ] Conversation history & analytics
+- [ ] Docker containerization
+- [ ] Webhook notifications
+- [ ] Authentication & multi-user support
+- [ ] Chapter management & metadata
+
+---
+
+## 💡 Examples
+
+### Python Integration
 ```python
-engine.setProperty('rate', 200)      # Speech speed
-engine.setProperty('volume', 0.9)    # Volume (0.0 to 1.0)
+import requests
+
+# Single file conversion
+response = requests.post(
+    "http://localhost:5000/api/convert",
+    files={"file": open("document.pdf", "rb")},
+    data={
+        "engine": "gtts",
+        "voice": "en",
+        "speed": 1.2,
+        "async": True
+    }
+)
+
+job_id = response.json()["job_id"]
+print(f"Job queued: {job_id}")
 ```
 
-### Audio Speed (tts.py)
-```python
-# Change speed multiplier (1.5 = 1.5x faster)
-faster = sound._spawn(
-    sound.raw_data,
-    overrides={"frame_rate": int(sound.frame_rate * 1.5)}
-).set_frame_rate(sound.frame_rate)
+### JavaScript Integration
+```javascript
+const formData = new FormData();
+formData.append("file", pdfFile);
+formData.append("engine", "gtts");
+formData.append("speed", 1.2);
+formData.append("async", true);
+
+const response = await fetch("http://localhost:5000/api/convert", {
+  method: "POST",
+  body: formData
+});
+
+const job = await response.json();
+console.log(`Job ID: ${job.job_id}`);
 ```
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+## 🤝 Contributing
 
-## License
+Contributions welcome! Feel free to:
+- Report bugs
+- Suggest features
+- Submit pull requests
+- Improve documentation
 
-This project is open source and available under the MIT License.
+---
 
-## Support
+## 📄 License
 
-If you encounter any issues:
-1. Check the troubleshooting section
-2. Run `python test_env.py` to diagnose problems
-3. Create an issue with error details and system information
+MIT License - See [LICENSE](./LICENSE) file
+
+---
+
+## 🙏 Credits
+
+Built on top of:
+- [PyMuPDF](https://pymupdf.readthedocs.io/) - PDF processing
+- [gTTS](https://gtts.readthedocs.io/) - Google Text-to-Speech
+- [pyttsx3](https://pyttsx3.readthedocs.io/) - Offline TTS
+- [pydub](https://github.com/jiaaro/pydub) - Audio processing
+- [pytesseract](https://github.com/madmaze/pytesseract) - OCR
+
+---
+
+## 📞 Support
+
+- **Issues**: Open a GitHub issue for bugs or features
+- **Discussions**: Check discussions for questions
+- **Docs**: See [API.md](./API.md) for detailed endpoint docs
