@@ -17,18 +17,24 @@ class AudioProcessor:
     def process_audio(self, audio_path, speed=1.0, normalize=True, format="mp3"):
         """
         Post-process audio with speed adjustment and normalization
-        Falls back to simple conversion if ffmpeg unavailable
+        If ffmpeg unavailable, returns original file as-is
         
         Args:
             audio_path: Path to source audio
-            speed: Playback speed multiplier (0.5-2.0)
-            normalize: Whether to normalize volume
-            format: Output format (mp3, wav, m4b, etc)
+            speed: Playback speed multiplier (0.5-2.0) - ignored without ffmpeg
+            normalize: Whether to normalize volume - ignored without ffmpeg
+            format: Output format (mp3, wav, m4b, etc) - ignored without ffmpeg
             
         Returns:
-            Path to processed audio file
+            Path to audio file (original if ffmpeg unavailable, processed if available)
         """
         audio_path = Path(audio_path)
+        
+        # If ffmpeg is not available, just return the original file
+        if not FFMPEG_AVAILABLE:
+            logger.warning(f"ffmpeg/ffprobe not installed - returning audio as-is (no processing)")
+            logger.info(f"Audio ready: {audio_path}")
+            return str(audio_path)
         
         # Detect format from file extension
         file_format = audio_path.suffix.lstrip(".").lower()
@@ -37,11 +43,9 @@ class AudioProcessor:
             # Load audio
             sound = AudioSegment.from_file(str(audio_path), format=file_format)
             
-            # Apply speed adjustment (only if ffmpeg available)
-            if speed != 1.0 and FFMPEG_AVAILABLE:
+            # Apply speed adjustment if requested
+            if speed != 1.0:
                 sound = self._adjust_speed(sound, speed)
-            elif speed != 1.0 and not FFMPEG_AVAILABLE:
-                logger.warning(f"Speed adjustment skipped (ffmpeg not installed). Audio will play at normal speed.")
             
             # Normalize volume
             if normalize:
@@ -61,17 +65,9 @@ class AudioProcessor:
         
         except Exception as e:
             logger.error(f"Audio processing failed: {str(e)}")
-            # If processing fails, try to just convert to target format without modifications
-            try:
-                logger.info("Falling back to simple format conversion...")
-                sound = AudioSegment.from_file(str(audio_path), format=file_format)
-                output_path = audio_path.parent / f"{audio_path.stem}_processed.{format}"
-                sound.export(str(output_path), format=format)
-                logger.info(f"Fallback conversion saved: {output_path}")
-                return str(output_path)
-            except Exception as e2:
-                logger.error(f"Fallback conversion also failed: {str(e2)}")
-                raise
+            logger.info(f"Falling back to original audio file: {audio_path}")
+            # If processing fails, just return original
+            return str(audio_path)
     
     def _adjust_speed(self, sound, speed_factor):
         """Adjust playback speed by changing frame rate"""
